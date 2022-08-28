@@ -1,0 +1,68 @@
+@import url('https://rsms.me/inter/inter.css');
+
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: white;
+  height: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  overflow: hidden;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+
+  --primary-color: #1D1D1F;
+}
+
+/* Reset layout */
+*,
+*::after,
+*::before {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  
+}
+::-webkit-scrollbar {
+  width: 14px; /* Mostly for vertical scrollbars */
+  padding: 2px;
+}
+::-webkit-scrollbar-thumb { /* Foreground */
+  background-color: rgba(29,29,31,0.4);
+    backdrop-filter: blur(8px);
+  border-radius: 7px;
+  border-width: 4px;
+  border-style: solid;
+  border-color: transparent;
+  background-clip: content-box;
+
+}
+.styled-scrollbars::-webkit-scrollbar-track { /* Background */
+  background: green;
+  padding: 2px;
+  margin: 2px;
+}
+
+#app {
+  background: linear-gradient(rgba(29,29,31,0.4), rgba(29,29,31,0.4)), url(public/background.webp);
+  height: 100vh;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
