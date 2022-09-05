@@ -1,0 +1,17 @@
+{
+    "manifest_version": 3,
+    "name": "Typetask",
+    "version": "1.0",
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "description": "TODO",
+    "permissions": ["tabs", "storage", "alarms"],
+    "short_name": "Typetask",
+    "background": {
+        "service_worker": "worker.js"
+    },
+    "icons": {
+        "128": "icon.png"
+    }
+}

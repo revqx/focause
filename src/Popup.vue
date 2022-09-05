@@ -2,78 +2,142 @@
 import Brand from './components/Brand.vue';
 import Rows from './components/Rows.vue';
 import TabSelect from './components/TabSelect.vue';
-import Settings from './components/Settings.vue';
 import Card from "./components/Card.vue";
-import Limits from "./components/Limits.vue";
+import LimitsPage from "./components/LimitsPage.vue";
 
 import { ref, computed } from 'vue';
+import { Unlock, TimeSpan, Measurement , StatisticsRecord} from "./types/types";
 
 const isMenuActive = ref(false);
 
-const currentPage = ref("dashboard");
+enum Page {
+    Dashboard,
+    Limits
+}
+
+const currentPage = ref<Page>(Page.Dashboard);
 
 function toggleMenu() {
     isMenuActive.value = !isMenuActive.value;
 }
 
-const unlocks = [{
-    website: "stackoverflow.com",
-    date: new Date(),
-    duration: 1608,
-    reason: "create google 2.0"
-}, {
-    website: "facebook.com",
-    date: new Date(),
-    duration: 5519,
-    reason: "communicate with my aunt"
-}, {
-    website: "facebook.com",
-    date: new Date(),
-    duration: 207,
-    reason: "communicate with my aunt"
-}, {
-    website: "facebook.com",
-    date: new Date(),
-    duration: 4000,
-    reason: "communicate with my aunt"
-}, {
-    website: "facebook.com",
-    date: new Date(),
-    duration: 7976,
-    reason: "communicate with my aunt"
-}];
+let unlocks = ref<Array<StatisticsRecord>>([]);
+if(!chrome.storage) {
+    let unlocks = ref<Array<StatisticsRecord>>([
+        {
+            subtitle: "facebook.com",
+            started: Date.now() - 20000000000,
+            value: 551900,
+            title: "communicate with my aunt"
+        },
+        {
+            subtitle: "stackoverflow.com",
+            started: Date.now() - 500000000,
+            value: 1608000,
+            title: "create google 2.0"
+        },
+        {
+            subtitle: "facebook.com",
+            started: Date.now() - 500000000,
+            value: 207,
+            title: "communicate with my aunt"
+        },
+        {
+            subtitle: "youtube.com",
+            started: Date.now() - 100000000,
+            value: 100000,
+            title: "communicate with my aunt"
+        }, {
+            subtitle: "youtube.comasldkjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
+            started: Date.now(),
+            value: 100000,
+            title: "communicate with my aunt aunt aunt aunt aunt aunt aunt"
+        },]);
+
+    unlocks.value.reverse();
+}
+
 const modal = ref<HTMLDivElement | null>(null);
 
 const onEnter = () => {
     modal.value?.focus();
 }
-
-const addLimit = () => {
-    alert("Wird gemacht, sir!");
+if (chrome?.storage) {
+    chrome.storage.sync.get(["history"], (result) => {
+        let hist: Array<Unlock> = result["history"];
+        hist.reverse();
+        unlocks.value = hist.map(old => {
+            return {title: old.reason, 
+                subtitle: old.url.replace(/^https?:\/\/w?w?w?\.?/, ''), 
+                value: old.duration, 
+                started: old.started}});
+    })
 }
+
+const measureBy = ref<Measurement>(Measurement.Frequency);
+
+const tabValueSites = ref<TimeSpan>(TimeSpan.week);
+const tabValueReasons = ref<TimeSpan>(TimeSpan.week);
+
+function accumulate(list: Array<StatisticsRecord>, since: TimeSpan, groupBy: string, metric: Measurement) {
+    let times: { [key: number]: number; } = {};
+    times[TimeSpan.day] = 1000 * 60 * 60 * 24;
+    times[TimeSpan.week] = 1000 * 60 * 60 * 24 * 7;
+    times[TimeSpan.month] = 1000 * 60 * 60 * 24 * 30;
+    times[TimeSpan.allTime] = Date.now();
+    let start = Date.now() - times[since];
+
+    const totals: Record<string, number> = {};
+
+    for (let unlock of list) {
+        if ((unlock.started || 0) > start) {
+            const key = groupBy === "url" ? unlock.subtitle : unlock.title;
+            if (key)
+                totals[key] = (totals[key] || 0) + (metric === Measurement.Frequency ? 1 : unlock.value);
+        } else {
+            break; // Assume the unlocks are ordered by time -> don't iterate over full history
+        }
+    }
+    let rows = [];
+    for (let url in totals) {
+        rows.push({ title: url.replace(/^https?:\/\/w?w?w?\.?/, ''), value: totals[url] });
+    }
+    rows.sort((a, b) => b.value - a.value);
+    return rows;
+}
+const timeSpent = computed(() => {
+    return accumulate(unlocks.value, tabValueSites.value, "url", Measurement.Time);
+});
+
+const reasons = computed(() => {
+    return accumulate(unlocks.value, tabValueReasons.value, "reason", measureBy.value);
+})
+
+
 </script>
 
 <template>
-    <Transition
-     @enter="onEnter">
-        <nav ref="modal" tabindex="0" v-if="isMenuActive" :class="{active: isMenuActive }" @keydown.esc="isMenuActive && (isMenuActive = false)">
+    <Transition @enter="onEnter">
+        
+        <nav ref="modal" tabindex="0" v-if="isMenuActive" :class="{ active: isMenuActive }"
+            @keydown.esc="isMenuActive && (isMenuActive = false)">
             <ul class="menu-container">
                 <li class="menu-item">
-                    <a href="#" @click="currentPage = 'dashboard'; isMenuActive = false"
-                        :class="{ 'current': currentPage === 'dashboard' }">Dashboard</a>
+                    <a href="#" @click="currentPage = Page.Dashboard; isMenuActive = false"
+                        :class="{ 'current': currentPage === Page.Dashboard }">Dashboard</a>
                 </li>
                 <li class="menu-item">
-                    <a href="#" @click="currentPage = 'limits'; isMenuActive = false"
-                        :class="{ 'current': currentPage === 'limits' }">Limits</a>
+                    <a href="#" @click="currentPage = Page.Limits; isMenuActive = false"
+                        :class="{ 'current': currentPage === Page.Limits }">Limits</a>
                 </li>
-                <li class="menu-item">
-                    <a href="#" @click="currentPage = 'settings'; isMenuActive = false"
-                        :class="{ 'current': currentPage === 'settings' }">Settings</a>
-                </li>
-                <li class="menu-item">
-                    <a href="#" @click="currentPage = 'shortcuts'; isMenuActive = false"
-                        :class="{ 'current': currentPage === 'shortcuts' }">Shortcuts</a>
-                </li>
+                <!-- <li class="menu-item">
+                    <a href="#" @click="currentPage = Page.Settings; isMenuActive = false"
+                        :class="{ 'current': currentPage === Page.Settings }">Settings</a>
+                </li> -->
+                <!-- <li class="menu-item">
+                    <a href="#" @click="currentPage = Page.Shortcuts; isMenuActive = false"
+                        :class="{ 'current': currentPage === Page.Shortcuts }">Shortcuts</a>
+                </li> -->
             </ul>
         </nav>
     </Transition>
@@ -88,32 +152,37 @@ const addLimit = () => {
     </header>
 
     <div class="body" :class="{ 'active': isMenuActive }">
-        <Card heading="Limits">
-            <Limits />
-        </Card>
-        <Card heading="Settings">
+        <LimitsPage v-if="currentPage === Page.Limits" />
+        
+        <Card v-if="false" heading="Settings">
             <Settings />
         </Card>
-        <Card heading="Unlocks">
-            <Rows :has-subtitle="true" :rows="unlocks" />
-        </Card>
-        <Card heading="Time Spent">
-            <TabSelect />
-            <Rows :rows="unlocks" />
-        </Card>
-        <Card heading="Intentions">
-            <Rows :rows="unlocks" />
-        </Card>
-        <Card :button="true" @click.prevent="addLimit">
+
+        
+        <Card v-if="currentPage === Page.Dashboard" :button="true" @click.prevent="currentPage = Page.Limits">
             Add limit
         </Card>
-        <Card :button="true" @click.prevent="addLimit">
-            Add current site
+        <Card v-if="currentPage === Page.Dashboard" heading="Time Spent">
+            <TabSelect v-model="tabValueSites" />
+            <Rows :rows="timeSpent" />
         </Card>
-        <Card :button="true" @click.prevent="addLimit">
-            Add other site
+        <Card v-if="currentPage === Page.Dashboard" heading="Reasons">
+            <template v-slot:heading>
+                <button
+                    @click="measureBy = (measureBy === Measurement.Time ? Measurement.Frequency : Measurement.Time)">Measure
+                    by {{ measureBy === Measurement.Time ? "time" : "frequency" }}</button>
+            </template>
+            <TabSelect v-model="tabValueReasons" />
+            <Rows v-if="reasons.length > 0" :rows="reasons" :metric="measureBy" />
+
+            <div v-else class="empty-state">You have not entered any reasons yet. </div>
+        </Card>
+        <Card v-if="currentPage === Page.Dashboard" heading="Recent unlocks">
+            <Rows :has-subtitle="true" :rows="unlocks.filter(unlock => unlock.title)" />
         </Card>
         
+
+
     </div>
 </template>
 
@@ -140,14 +209,16 @@ header {
     overflow-y: scroll;
     scrollbar-gutter: stable;
     padding: 0 -10px 0 0px;
+    outline: none;
 }
 
 .body.active {
-    opacity: 0;
+    z-index: -1;
 }
 
 .logo {
     z-index: 1;
+    height: 24px;
 }
 
 nav {
@@ -162,9 +233,12 @@ nav {
     backdrop-filter: blur(16px);
     opacity: 1;
     transition: opacity 200ms ease-out;
+    font-size: 16px;
+    outline: none;
 }
 
-nav.v-enter-from, nav.v-leave-to {
+nav.v-enter-from,
+nav.v-leave-to {
     opacity: 0;
 }
 
@@ -245,4 +319,25 @@ a.current {
     font-style: italic;
 }
 
+button {
+    background: none;
+    border: none;
+    padding: none;
+    font-family: inherit;
+    font-size: 11px;
+    color: inherit;
+    cursor: pointer;
+}
+
+button:focus-visible,
+button:hover {
+    font-style: italic;
+}
+
+.empty-state {
+    margin-top: 8px;
+    line-height: 18px;
+    font-size: 12px;
+    white-space: pre-wrap;
+}
 </style>
