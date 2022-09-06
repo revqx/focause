@@ -273,7 +273,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
         if (url && (url !== state.url)) {
             // allow navigations up to 10 seconds after unlock as the 
             // website might redirect during load
-            if (Date.now() - state.started < 10000) {
+            if (Date.now() - state.started < 180000) {
                 state['url'] = url; // remember the new, redirected url
                 StateManager.setTabState(tabId, state);
 

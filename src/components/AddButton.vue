@@ -79,7 +79,7 @@ const submit = () => {
         }
         limit.value.time = parseInt(content.value) || limit.value.time;
         exitInput();
-        emits("limit", limit.value);
+        emits("limit", {...limit.value});
     }
 }
 
