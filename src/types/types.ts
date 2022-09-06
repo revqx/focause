@@ -7,7 +7,8 @@ export interface Unlock {
     url: string,
     started: number,
     duration: number,
-    reason: string
+    reason: string,
+    limit: string
 }
 
 export interface StatisticsRecord {

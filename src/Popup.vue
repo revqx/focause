@@ -6,7 +6,7 @@ import Card from "./components/Card.vue";
 import LimitsPage from "./components/LimitsPage.vue";
 
 import { ref, computed } from 'vue';
-import { Unlock, TimeSpan, Measurement , StatisticsRecord} from "./types/types";
+import { Unlock, TimeSpan, Measurement, StatisticsRecord, BlockData } from "./types/types";
 
 const isMenuActive = ref(false);
 
@@ -21,38 +21,43 @@ function toggleMenu() {
     isMenuActive.value = !isMenuActive.value;
 }
 
-let unlocks = ref<Array<StatisticsRecord>>([]);
-if(!chrome.storage) {
-    let unlocks = ref<Array<StatisticsRecord>>([
+let unlocks = ref<Array<Unlock>>([]);
+if (!chrome.storage) {
+    unlocks.value = [
         {
-            subtitle: "facebook.com",
+            url: "facebook.com",
             started: Date.now() - 20000000000,
-            value: 551900,
-            title: "communicate with my aunt"
+            duration: 551900,
+            reason: "communicate with my aunt",
+            limit: "facebook.com"
         },
         {
-            subtitle: "stackoverflow.com",
+            url: "stackoverflow.com",
             started: Date.now() - 500000000,
-            value: 1608000,
-            title: "create google 2.0"
+            duration: 1608000,
+            reason: "create google 2.0",
+            limit: "stackoverflow.com"
         },
         {
-            subtitle: "facebook.com",
+            url: "facebook.com",
             started: Date.now() - 500000000,
-            value: 207,
-            title: "communicate with my aunt"
+            duration: 207,
+            reason: "communicate with my aunt",
+            limit: "facebook.com"
         },
         {
-            subtitle: "youtube.com",
+            url: "youtube.com/test",
             started: Date.now() - 100000000,
-            value: 100000,
-            title: "communicate with my aunt"
+            duration: 100000,
+            reason: "communicate with my aunt",
+            limit: "youtube.com"
         }, {
-            subtitle: "youtube.comasldkjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
+            url: "youtube.com/moin",
             started: Date.now(),
-            value: 100000,
-            title: "communicate with my aunt aunt aunt aunt aunt aunt aunt"
-        },]);
+            duration: 100000,
+            reason: "communicate with my aunt aunt aunt aunt aunt aunt aunt",
+            limit: "youtube.com"
+        },];
 
     unlocks.value.reverse();
 }
@@ -67,10 +72,10 @@ if (chrome?.storage) {
         let hist: Array<Unlock> = result["history"];
         hist.reverse();
         unlocks.value = hist.map(old => {
-            return {title: old.reason, 
-                subtitle: old.url.replace(/^https?:\/\/w?w?w?\.?/, ''), 
-                value: old.duration, 
-                started: old.started}});
+            old.url = old.url.replace(/^https?:\/\/w?w?w?\.?/, '');
+            return old;
+        }
+        );
     })
 }
 
@@ -78,39 +83,76 @@ const measureBy = ref<Measurement>(Measurement.Frequency);
 
 const tabValueSites = ref<TimeSpan>(TimeSpan.week);
 const tabValueReasons = ref<TimeSpan>(TimeSpan.week);
+const limits = ref<Array<BlockData>>([]);
 
-function accumulate(list: Array<StatisticsRecord>, since: TimeSpan, groupBy: string, metric: Measurement) {
-    let times: { [key: number]: number; } = {};
-    times[TimeSpan.day] = 1000 * 60 * 60 * 24;
-    times[TimeSpan.week] = 1000 * 60 * 60 * 24 * 7;
-    times[TimeSpan.month] = 1000 * 60 * 60 * 24 * 30;
-    times[TimeSpan.allTime] = Date.now();
+/*
+    * loaded to calculate statistics
+*/
+if (chrome.storage) {
+    chrome.storage.sync.get(["blockData"], (result) => {
+        limits.value = result["blockData"] || [];
+    });
+} else {
+    limits.value = [{ url: "youtube.com", time: 1 }, { url: "facebook.com", time: 1 }]
+}
+
+
+let times: { [key: number]: number; } = {};
+times[TimeSpan.day] = 1000 * 60 * 60 * 24;
+times[TimeSpan.week] = 1000 * 60 * 60 * 24 * 7;
+times[TimeSpan.month] = 1000 * 60 * 60 * 24 * 30;
+times[TimeSpan.allTime] = Date.now();
+
+
+function accumulate(list: Array<Unlock>, since: TimeSpan, metric: Measurement) {
+
     let start = Date.now() - times[since];
 
     const totals: Record<string, number> = {};
 
     for (let unlock of list) {
         if ((unlock.started || 0) > start) {
-            const key = groupBy === "url" ? unlock.subtitle : unlock.title;
+            const key = unlock.reason;
             if (key)
-                totals[key] = (totals[key] || 0) + (metric === Measurement.Frequency ? 1 : unlock.value);
+                totals[key] = (totals[key] || 0) + (metric === Measurement.Frequency ? 1 : unlock.duration);
         } else {
             break; // Assume the unlocks are ordered by time -> don't iterate over full history
         }
     }
     let rows = [];
     for (let url in totals) {
-        rows.push({ title: url.replace(/^https?:\/\/w?w?w?\.?/, ''), value: totals[url] });
+        rows.push({ title: url, value: totals[url] });
     }
     rows.sort((a, b) => b.value - a.value);
     return rows;
 }
+
+
 const timeSpent = computed(() => {
-    return accumulate(unlocks.value, tabValueSites.value, "url", Measurement.Time);
+    let start = Date.now() - times[tabValueSites.value];
+    let totals: Record<string, number> = {};
+    for (let unlock of unlocks.value) {
+        if ((unlock.started || 0) > start) {
+            const countedUrl = unlock.limit || unlock.url; // Use the url as a backup if no limit available
+            if (!totals[countedUrl]) {
+                totals[countedUrl] = 0;
+            }
+            totals[countedUrl] += unlock.duration;
+
+        }
+    }
+
+    let rows = [];
+    for (let url in totals) {
+        rows.push({ title: url, value: totals[url] });
+    }
+    rows.sort((a, b) => b.value - a.value);
+
+    return rows;
 });
 
 const reasons = computed(() => {
-    return accumulate(unlocks.value, tabValueReasons.value, "reason", measureBy.value);
+    return accumulate(unlocks.value, tabValueReasons.value, measureBy.value);
 })
 
 
@@ -118,7 +160,7 @@ const reasons = computed(() => {
 
 <template>
     <Transition @enter="onEnter">
-        
+
         <nav ref="modal" tabindex="0" v-if="isMenuActive" :class="{ active: isMenuActive }"
             @keydown.esc="isMenuActive && (isMenuActive = false)">
             <ul class="menu-container">
@@ -153,12 +195,12 @@ const reasons = computed(() => {
 
     <div class="body" :class="{ 'active': isMenuActive }">
         <LimitsPage v-if="currentPage === Page.Limits" />
-        
+
         <Card v-if="false" heading="Settings">
             <Settings />
         </Card>
 
-        
+
         <Card v-if="currentPage === Page.Dashboard" :button="true" @click.prevent="currentPage = Page.Limits">
             Add limit
         </Card>
@@ -178,9 +220,15 @@ const reasons = computed(() => {
             <div v-else class="empty-state">You have not entered any reasons yet. </div>
         </Card>
         <Card v-if="currentPage === Page.Dashboard" heading="Recent unlocks">
-            <Rows :has-subtitle="true" :rows="unlocks.filter(unlock => unlock.title)" />
+            <Rows :has-subtitle="true" :rows="unlocks.filter(unlock => unlock.reason).map((e) => (
+            {
+                title: e.reason,
+                subtitle: e.url,
+                value: e.duration,
+                started: e.started
+            }))" />
         </Card>
-        
+
 
 
     </div>
