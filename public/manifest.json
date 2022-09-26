@@ -1,15 +1,15 @@
 {
     "manifest_version": 3,
-    "name": "Typetask",
+    "name": "hasp",
     "version": "1.0",
     "action": {
         "default_popup": "popup.html"
     },
     "description": "TODO",
     "permissions": ["tabs", "storage", "alarms"],
-    "short_name": "Typetask",
+    "short_name": "hasp",
     "background": {
-        "service_worker": "worker.js"
+        "service_worker": "assets/worker.js"
     },
     "icons": {
         "128": "icon.png"

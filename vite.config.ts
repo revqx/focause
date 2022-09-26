@@ -9,9 +9,13 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        popup: resolve(__dirname, 'popup.html')     
+        popup: resolve(__dirname, 'popup.html'),
+        worker: resolve(__dirname, 'src/worker.ts'),
+        debug: resolve(__dirname, "debug.html")
+       },
+       output: {
+        entryFileNames: 'assets/[name].js'
        }
-
     }
   }
 })

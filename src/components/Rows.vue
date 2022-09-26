@@ -107,7 +107,7 @@ function formatDuration(milliseconds: number, metric?: Measurement) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-right: 8px;
+    margin-right: 16px;
 }
 
 .title .time {
