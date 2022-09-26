@@ -121,7 +121,8 @@ async function closeSession(tabId: number) {
         "url": state.url,
         "duration": state.duration,
         "started": state.started,
-        "reason": state.state === "unlocked" ? state.reason: undefined
+        "reason": state?.reason,
+        "limit": await isOnBlockList(state.url) || state.url
     }
 
     console.log(unlock);
@@ -286,12 +287,17 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
     }
 });
 
-async function isOnBlockList(tab: chrome.tabs.Tab) {
+
+/*
+ * Checks, wether the given tab is on the block list. If it is, it returns
+ * the url it matched against, otherwise it returns 'false'
+ */
+async function isOnBlockList(tab) {
     return new Promise((resolve, reject) =>
         chrome.storage.sync.get("blockData", (result) => {
             for (const limit of result["blockData"]) {
-                if (tab.pendingUrl?.includes(limit.url) || tab?.url?.includes(limit.url)) {
-                    resolve(true);
+                if (urlMatches((tab?.pendingUrl || tab?.url) || tab, limit.url)) {
+                    resolve(limit.url);
                     return;
                 }
             }

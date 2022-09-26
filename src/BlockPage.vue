@@ -29,19 +29,22 @@ if(!chrome.storage) {
             url: "facebook.com",
             started: Date.now() - 2000000000,
             duration: 551900,
-            reason: "communicate with my aunt"
+            reason: "communicate with my aunt",
+            limit: "facebook.com"
         },
         {
             url: "stackoverflow.com",
             started: Date.now() - 500000000,
             duration: 1608000,
-            reason: "create google 2.0"
+            reason: "create google 2.0",
+            limit: "facebook.com"
         },
         {
             url: "facebook.com",
             started: Date.now() - 500000000,
             duration: 207,
-            reason: "communicate with my aunt"
+            reason: "communicate with my aunt",
+            limit: "facebook.com"
         }
     ]);
     states = ref<Array<Unlock>>([
@@ -49,29 +52,26 @@ if(!chrome.storage) {
             url: "facebook.com",
             started: Date.now() - 100000,
             reason: "communicate with my aunt 1",
-            duration: 0
+            duration: 0,
+            limit: "facebook.com"
         },
         {
             url: "stackoverflow.com",
             started: Date.now() - 1200000,
             reason: "create google 2.0 2",
-            duration: 0
+            duration: 0,
+            limit: "facebook.com"
         },
         {
             url: "facebook.com",
             started: Date.now() - 1400000,
             reason: "communicate with my aunt 3",
-            duration: 0
+            duration: 0,
+            limit: "facebook.com"
+
         }
     ]);
 }
-
-const modal = ref<HTMLDivElement | null>(null);
-
-const onEnter = () => {
-    modal.value?.focus();
-}
-
 
 if (chrome?.storage) {
 
